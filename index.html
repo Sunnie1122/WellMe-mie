@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WellMe — Health Companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#65b7e8;--blue2:#dff3ff;--ink:#25456b;--cream:#fffdf7;--line:#d8e7ef;--pink:#ffdce7;--mint:#dff5e9;--lav:#e9e5ff;--yellow:#fff0bd}
+*{box-sizing:border-box}body{margin:0;background:#edf7fb;color:var(--ink);font-family:Nunito,Arial,sans-serif}
+.app{min-height:100vh;display:flex;max-width:1450px;margin:auto;background:var(--cream)}
+.sidebar{width:210px;padding:22px 14px;border-right:1px solid var(--line);background:#fffefa;position:sticky;top:0;height:100vh}
+.logo{font-family:"Press Start 2P",monospace;font-size:13px;margin:5px 10px 28px;color:#3976a7}
+.logo span{font-size:17px}.nav button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:12px 13px;border-radius:14px;color:#55718d;font-weight:800;cursor:pointer;margin:4px 0}.nav button.active,.nav button:hover{background:var(--blue2);color:#2c73a6}.pet-mini{margin-top:35px;padding:12px;border:1px solid var(--line);border-radius:18px;text-align:center;background:#fff}.pet-mini .pet{font-size:38px}
+main{flex:1;padding:24px 34px;max-width:1120px;margin:auto;width:100%}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.hello{font-family:"Press Start 2P",monospace;font-size:19px;line-height:1.8}.sub{color:#7190a8;font-weight:700}.avatar{font-size:28px}
+.card{background:white;border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:0 8px 24px rgba(66,112,140,.07);margin-bottom:16px}
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}.four{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{padding:15px;border-radius:17px;border:1px solid var(--line);background:#fff}.metric .emoji{font-size:25px}.metric b{display:block;font-size:21px;margin-top:7px}.metric small{color:#7890a4;font-weight:700}
+h2{font-size:20px;margin:0 0 14px}.section-title{display:flex;justify-content:space-between;align-items:center}.pill{display:inline-flex;padding:7px 11px;border-radius:99px;background:var(--blue2);font-size:12px;font-weight:800}.tabs{display:flex;gap:7px;margin-bottom:16px}.tabs button{border:1px solid var(--line);background:white;padding:9px 15px;border-radius:99px;color:#64819b;font-weight:800;cursor:pointer}.tabs button.active{background:var(--blue);color:white;border-color:var(--blue)}
+.health-score{display:flex;align-items:center;gap:22px}.score{width:145px;height:145px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--blue) 82%,#e9f2f6 0);position:relative}.score:after{content:"";position:absolute;width:111px;height:111px;border-radius:50%;background:white}.score span{position:relative;z-index:1;font-size:33px;font-weight:900}.watch{background:#e5f5ff;border-color:#bfe2f7}.watch .pet{font-size:38px}.list{display:grid;gap:10px}.row{display:flex;align-items:center;justify-content:space-between;padding:13px;border:1px solid var(--line);border-radius:15px;background:#fff}.row-left{display:flex;align-items:center;gap:10px}.status{padding:5px 9px;border-radius:99px;font-size:11px;font-weight:900}.low{background:#ffdfe1;color:#b54c56}.normal{background:#dff5e9;color:#378060}.high{background:#ffe3d2;color:#b4632f}
+.chart{height:210px;display:flex;align-items:flex-end;gap:13px;padding:12px 5px 4px;border-bottom:1px dashed #cddfe9}.bar{flex:1;background:linear-gradient(#65b7e8,#bfe6fa);border-radius:9px 9px 3px 3px;min-height:25px;position:relative}.bar span{position:absolute;bottom:-23px;left:50%;transform:translateX(-50%);font-size:11px;color:#7890a4}.insight{background:#fff8df;border:1px solid #f4e4ae;border-radius:17px;padding:15px;font-weight:700}
+.page{display:none}.page.active{display:block}.meal{display:flex;gap:13px;align-items:center}.food{font-size:34px;width:54px;height:54px;border-radius:15px;background:#f5f9fa;display:grid;place-items:center}
+.pet-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.pet-choice{border:2px solid var(--line);background:white;border-radius:18px;padding:16px;text-align:center;font-size:42px;cursor:pointer}.pet-choice.selected{border-color:var(--blue);background:var(--blue2)}
+.btn{border:0;background:var(--blue);color:white;border-radius:14px;padding:11px 17px;font-weight:900;cursor:pointer}.btn.secondary{background:#eef7fb;color:#3976a7}
+.bottom{display:none}
+@media(max-width:850px){.sidebar{display:none}main{padding:18px 14px 90px}.grid,.four{grid-template-columns:1fr 1fr}.health-score{align-items:flex-start}.bottom{display:flex;position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--line);z-index:5;justify-content:space-around;padding:9px}.bottom button{border:0;background:none;color:#66839c;font-weight:800}.bottom button.active{color:#2d7bb0}}
+@media(max-width:560px){.grid,.four,.pet-grid{grid-template-columns:1fr}.hello{font-size:15px}.score{width:125px;height:125px}.score:after{width:95px;height:95px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo">🌱 WellMe</div>
+  <div class="nav">
+    <button class="active" data-page="home">🏠 Home</button>
+    <button data-page="health">🫀 Health</button>
+    <button data-page="nutrition">🍜 Nutrition</button>
+    <button data-page="sleep">🌙 Sleep</button>
+    <button data-page="exercise">🏃 Exercise</button>
+    <button data-page="supplements">💊 Supplements</button>
+    <button data-page="insights">💡 Insights</button>
+    <button data-page="profile">🐾 Profile</button>
+  </div>
+  <div class="pet-mini"><div class="pet" id="petMini">🐱</div><b>Luna</b><br><small>Your little health buddy ♡</small></div>
+</aside>
+<main>
+<section id="home" class="page active">
+  <div class="top"><div><div class="hello">Good morning,<br>Muyang ♡</div><div class="sub">Small consistent steps → big changes.</div></div><div class="avatar">🔔　👩🏻</div></div>
+  <div class="card">
+    <div class="section-title"><h2>♡ Your Health Overview</h2><span class="pill">Today</span></div>
+    <div class="health-score">
+      <div class="score"><span>82</span></div>
+      <div class="four" style="flex:1">
+        <div class="metric">🥗 <b>78%</b><small>Nutrition</small></div>
+        <div class="metric">🌙 <b>86%</b><small>Sleep</small></div>
+        <div class="metric">🏃 <b>72%</b><small>Exercise</small></div>
+        <div class="metric">😊 <b>81%</b><small>Recovery</small></div>
+      </div>
+    </div>
+  </div>
+  <div class="section-title"><h2>Today's Health</h2><span class="sub">View details →</span></div>
+  <div class="four">
+    <div class="metric">🍜 <small>Nutrition</small><b>1,680</b><small>/ 2,200 kcal</small></div>
+    <div class="metric">🌙 <small>Sleep</small><b>7h 42m</b><small>Good</small></div>
+    <div class="metric">🏋️ <small>Exercise</small><b>45 min</b><small>Moderate</small></div>
+    <div class="metric">💊 <small>Supplements</small><b>3</b><small>logged</small></div>
+  </div>
+</section>
+
+<section id="health" class="page">
+  <div class="top"><div><h1>🫀 Health Report</h1><div class="sub">Your numbers, over time.</div></div><button class="btn">＋ Upload report</button></div>
+  <div class="tabs"><button class="active">This Week</button><button>This Month</button><button>3 Months</button></div>
+  <div class="card"><div class="section-title"><h2>📈 Health Trend</h2><span class="pill">Last 7 days</span></div><div class="chart"><i class="bar" style="height:48%"><span>Mon</span></i><i class="bar" style="height:68%"><span>Tue</span></i><i class="bar" style="height:61%"><span>Wed</span></i><i class="bar" style="height:78%"><span>Thu</span></i><i class="bar" style="height:57%"><span>Fri</span></i><i class="bar" style="height:82%"><span>Sat</span></i><i class="bar" style="height:72%"><span>Sun</span></i></div></div>
+  <div class="card watch"><div class="row-left"><div class="pet">🐰</div><div><h2>⚠️ Watch your numbers</h2><div>Your Vitamin D and LDL are slightly outside your normal range. We'll keep tracking them with your daily habits.</div></div></div></div>
+  <div class="card"><h2>🧪 Latest Check-up · Sep 2026</h2><div class="list">
+    <div class="row"><span>☀️ Vitamin D</span><span>18 ng/mL <b class="status low">Low</b></span></div>
+    <div class="row"><span>🩸 Ferritin</span><span>25 ng/mL <b class="status normal">Normal</b></span></div>
+    <div class="row"><span>🫀 LDL Cholesterol</span><span>145 mg/dL <b class="status high">High</b></span></div>
+    <div class="row"><span>💧 HbA1c</span><span>5.7% <b class="status normal">Normal</b></span></div>
+  </div></div>
+</section>
+
+<section id="nutrition" class="page">
+  <div class="top"><div><h1>🍜 Nutrition</h1><div class="sub">Log it with a photo. We'll do the math.</div></div><button class="btn">📷 Add meal</button></div>
+  <div class="card"><div class="section-title"><h2>Today</h2><b>1,680 / 2,200 kcal</b></div><div style="height:10px;background:#edf4f7;border-radius:99px"><div style="width:76%;height:100%;background:var(--blue);border-radius:99px"></div></div></div>
+  <div class="four"><div class="metric">🥩 <b>72g</b><small>Protein / 90g</small></div><div class="metric">🍞 <b>180g</b><small>Carbs / 250g</small></div><div class="metric">🥑 <b>48g</b><small>Fat / 70g</small></div><div class="metric">🥬 <b>18g</b><small>Fiber / 25g</small></div></div>
+  <div class="card"><h2>Today's Meals</h2><div class="list">
+    <div class="row meal"><div class="row-left"><div class="food">🥣</div><div><b>Breakfast</b><br><small>Oats + Banana + Almond Butter</small></div></div><b>420 kcal</b></div>
+    <div class="row meal"><div class="row-left"><div class="food">🍚</div><div><b>Lunch</b><br><small>Chicken Rice + Egg + Broccoli</small></div></div><b>620 kcal</b></div>
+    <div class="row meal"><div class="row-left"><div class="food">🍣</div><div><b>Dinner</b><br><small>Salmon + Quinoa + Veggies</small></div></div><b>540 kcal</b></div>
+  </div></div>
+  <div class="card insight">💡 <b>Health connection:</b> Your logged meals are giving you plenty of protein and iron-rich foods. Your Vitamin D intake is still something to watch alongside your lab result.</div>
+</section>
+
+<section id="sleep" class="page">
+  <div class="top"><div><h1>🌙 Sleep</h1><div class="sub">Your sleep, your recovery.</div></div></div>
+  <div class="tabs"><button class="active">Today</button><button>This Week</button><button>This Month</button></div>
+  <div class="card"><div class="section-title"><h2>🌙 7h 42m</h2><span class="pill">Good</span></div><p class="sub">11:20 PM → 7:02 AM</p><div class="chart"><i class="bar" style="height:72%"></i><i class="bar" style="height:48%"></i><i class="bar" style="height:64%"></i><i class="bar" style="height:83%"></i><i class="bar" style="height:55%"></i><i class="bar" style="height:76%"></i></div></div>
+  <div class="card"><h2>😊 Sleep Quality · 86 / 100</h2><div class="insight">Your sleep has been more consistent this week. Keep an eye on bedtime consistency when we compare future health results.</div></div>
+</section>
+
+<section id="exercise" class="page">
+  <div class="top"><div><h1>🏃 Exercise</h1><div class="sub">Move your body, boost your mood.</div></div><button class="btn">＋ Log workout</button></div>
+  <div class="four"><div class="metric">🏃 <b>45 min</b><small>Today</small></div><div class="metric">🔥 <b>320</b><small>Estimated kcal</small></div><div class="metric">👟 <b>6,230</b><small>Steps</small></div><div class="metric">📅 <b>3 / 5</b><small>Weekly goal</small></div></div>
+  <div class="card"><h2>💪 Today's Workout</h2><div class="row"><span>🏋️ Strength Training</span><b>45 min</b></div></div>
+</section>
+
+<section id="supplements" class="page">
+  <div class="top"><div><h1>💊 Supplements</h1><div class="sub">Track what you take.</div></div><button class="btn">＋ Add</button></div>
+  <div class="card"><div class="list">
+    <div class="row"><span>☀️ Vitamin D3 · 1000 IU</span><span class="status normal">✓ Morning</span></div>
+    <div class="row"><span>💜 Magnesium · 400 mg</span><span class="status normal">✓ Night</span></div>
+    <div class="row"><span>🐟 Omega-3 · 1000 mg</span><span class="status normal">✓ Evening</span></div>
+    <div class="row"><span>🦠 Probiotic · 1 capsule</span><span class="status">○ Morning</span></div>
+  </div></div>
+  <div class="card watch">🐱 <b>AI note:</b> Keep supplement tracking consistent so your future health reports have more context. This is a tracker, not a diagnosis.</div>
+</section>
+
+<section id="insights" class="page">
+  <div class="top"><div><h1>💡 Insights</h1><div class="sub">Your AI health companion.</div></div></div>
+  <div class="card watch"><div class="row-left"><div class="pet">🐱</div><div><h2>☀️ Vitamin D is worth watching</h2><div>Your latest result is below the reference range. Your food and supplement logs can help you understand your habits alongside future lab results.</div></div></div></div>
+  <div class="card"><h2>✨ This week</h2><div class="list">
+    <div class="row">🥩 Protein intake is strong <b>82g/day</b></div>
+    <div class="row">🌙 Sleep consistency improved <b>+42 min</b></div>
+    <div class="row">🏃 Exercise was consistent <b>3 workouts</b></div>
+    <div class="row">🧪 LDL needs monitoring <b>145 mg/dL</b></div>
+  </div></div>
+</section>
+
+<section id="profile" class="page">
+  <div class="top"><div><h1>🐾 Profile</h1><div class="sub">Make WellMe yours.</div></div></div>
+  <div class="card"><h2>Choose your little buddy</h2><div class="pet-grid">
+    <button class="pet-choice selected" data-pet="🐱">🐱</button><button class="pet-choice" data-pet="🐶">🐶</button><button class="pet-choice" data-pet="🐰">🐰</button><button class="pet-choice" data-pet="🐹">🐹</button>
+  </div></div>
+  <div class="card"><h2>👩🏻 Muyang</h2><div class="four"><div class="metric"><small>Age</small><b>22</b></div><div class="metric"><small>Height</small><b>165 cm</b></div><div class="metric"><small>Weight</small><b>50 kg</b></div><div class="metric"><small>Goal</small><b>Health</b></div></div></div>
+</section>
+</main>
+<div class="bottom">
+  <button data-page="home" class="active">🏠<br>Home</button><button data-page="health">🫀<br>Health</button><button data-page="nutrition">🍜<br>Log</button><button data-page="insights">💡<br>Insights</button><button data-page="profile">🐾<br>Profile</button>
+</div>
+</div>
+<script>
+const buttons=document.querySelectorAll('[data-page]');
+const pages=document.querySelectorAll('.page');
+buttons.forEach(b=>b.addEventListener('click',()=>{
+  const p=b.dataset.page; pages.forEach(x=>x.classList.toggle('active',x.id===p));
+  document.querySelectorAll('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===p));
+  window.scrollTo({top:0,behavior:'smooth'});
+}));
+document.querySelectorAll('.pet-choice').forEach(b=>b.addEventListener('click',()=>{
+ document.querySelectorAll('.pet-choice').forEach(x=>x.classList.remove('selected')); b.classList.add('selected');
+ document.getElementById('petMini').textContent=b.dataset.pet;
+}));
+</script>
+</body></html>
