@@ -281,66 +281,110 @@ function renderSupplements(){
 window.toggleSupp=i=>{data.supplements[i].taken=!data.supplements[i].taken;save();renderSupplements()}
 renderSupplements();
 
-// Health report upload: stores the file metadata locally and extracts basic lab values from PDF text when possible.
-// No health file is uploaded to a server in this prototype.
+// Health report upload: scanned-PDF AI extraction via the secure Vercel backend.
 document.getElementById('uploadReportBtn')?.addEventListener('click',()=>document.getElementById('reportFile').click());
 document.getElementById('reportFile')?.addEventListener('change',async e=>{
  const file=e.target.files[0]; if(!file)return;
  const status=document.getElementById('reportStatus');
  status.style.display='block';
- status.innerHTML=`📄 <b>${esc(file.name)}</b><br><small>Reading your report locally in this browser…</small>`;
+ status.innerHTML=`📄 <b>${esc(file.name)}</b><br><small>Preparing your report for AI reading…</small>`;
  data.report={name:file.name,type:file.type,size:file.size,date:new Date().toISOString()};
  data.labs=[];
  try{
    if(file.type==='application/pdf' || file.name.toLowerCase().endsWith('.pdf')){
-     const text=await extractPdfText(file);
-     data.labs=parseLabs(text);
-     status.innerHTML=`📄 <b>${esc(file.name)}</b><br>Saved locally on this device. ${data.labs.length?`Found <b>${data.labs.length}</b> lab value(s) to review below.`:'I could not confidently extract lab values from this PDF yet. You can add them manually in the next version.'}`;
+     await analyzePdfReport(file,status);
+   }else if(file.type.startsWith('image/')){
+     const dataUrl=await fileToDataURL(file);
+     status.innerHTML=`🖼️ <b>${esc(file.name)}</b><br><small>AI is reading the image…</small>`;
+     const result=await analyzeImageBatch([dataUrl],1,1);
+     data.labs=result.labs||[];
+     status.innerHTML=`🖼️ <b>${esc(file.name)}</b><br>AI found <b>${data.labs.length}</b> lab value(s) to review.`;
+     save();renderLabs();
    }else{
-     status.innerHTML=`🖼️ <b>${esc(file.name)}</b><br>Saved locally on this device. Image OCR will be added next; for now, use the manual lab-entry flow.`;
+     throw new Error('Please upload a PDF or image.');
    }
-   save();renderLabs();
  }catch(err){
-   status.innerHTML=`📄 <b>${esc(file.name)}</b><br>Saved locally, but automatic text extraction failed.`;
+   console.error(err);
+   status.innerHTML=`📄 <b>${esc(file.name)}</b><br>⚠️ ${esc(err.message||'Automatic analysis failed. Please try again.')}`;
    save();
  }
+ e.target.value='';
 });
 
-async function extractPdfText(file){
+async function fileToDataURL(file){
+ return await new Promise((resolve,reject)=>{
+   const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file);
+ });
+}
+
+async function renderPdfPages(file){
  const pdfjs=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
  pdfjs.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
  const buf=await file.arrayBuffer();
  const pdf=await pdfjs.getDocument({data:buf}).promise;
- let text='';
+ const images=[];
  for(let p=1;p<=pdf.numPages;p++){
-   const page=await pdf.getPage(p); const c=await page.getTextContent();
-   text+=c.items.map(x=>x.str).join(' ')+'\\n';
+   const page=await pdf.getPage(p);
+   const base=page.getViewport({scale:1});
+   const scale=Math.min(1.7,1800/base.width);
+   const viewport=page.getViewport({scale});
+   const canvas=document.createElement('canvas');
+   canvas.width=Math.ceil(viewport.width); canvas.height=Math.ceil(viewport.height);
+   const ctx=canvas.getContext('2d',{alpha:false});
+   await page.render({canvasContext:ctx,viewport}).promise;
+   images.push({page:p,dataUrl:canvas.toDataURL('image/jpeg',0.78)});
  }
- return text;
+ return images;
 }
-function parseLabs(text){
- const defs=[
-  ['Vitamin D',/vitamin\\s*d(?:3)?[^\\d]{0,40}(\\d+(?:\\.\\d+)?)/i,'ng/mL'],
-  ['Ferritin',/ferritin[^\\d]{0,40}(\\d+(?:\\.\\d+)?)/i,'ng/mL'],
-  ['LDL Cholesterol',/LDL(?:\\s+cholesterol)?[^\\d]{0,40}(\\d+(?:\\.\\d+)?)/i,'mg/dL'],
-  ['HbA1c',/(?:HbA1c|A1c)[^\\d]{0,40}(\\d+(?:\\.\\d+)?)/i,'%'],
-  ['HDL Cholesterol',/HDL(?:\\s+cholesterol)?[^\\d]{0,40}(\\d+(?:\\.\\d+)?)/i,'mg/dL'],
-  ['Triglycerides',/triglycerides?[^\\d]{0,40}(\\d+(?:\\.\\d+)?)/i,'mg/dL'],
-  ['Hemoglobin',/(?:hemoglobin|haemoglobin)[^\\d]{0,40}(\\d+(?:\\.\\d+)?)/i,'g/dL']
- ];
- return defs.flatMap(([name,re,unit])=>{
-   const m=text.match(re); return m?[{name,value:Number(m[1]),unit}]:[];
+
+async function analyzePdfReport(file,status){
+ const pages=await renderPdfPages(file);
+ if(!pages.length)throw new Error('No pages could be read from this PDF.');
+ let allLabs=[];
+ const batchSize=3;
+ for(let i=0;i<pages.length;i+=batchSize){
+   const batch=pages.slice(i,i+batchSize);
+   status.innerHTML=`📄 <b>${esc(file.name)}</b><br><small>AI is reading pages ${batch[0].page}–${batch[batch.length-1].page} of ${pages.length}…</small>`;
+   const result=await analyzeImageBatch(batch.map(x=>x.dataUrl),batch[0].page,batch[batch.length-1].page);
+   allLabs=allLabs.concat(result.labs||[]);
+ }
+ // Deduplicate by name + page + value.
+ const seen=new Set();
+ data.labs=allLabs.filter(x=>{
+   const key=[x.name,x.value,x.unit,x.page].join('|');
+   if(seen.has(key))return false; seen.add(key); return true;
  });
+ status.innerHTML=`📄 <b>${esc(file.name)}</b><br>AI found <b>${data.labs.length}</b> lab value(s) to review. Values are extracted from the report; WellMe does not diagnose from them.`;
+ save();renderLabs();
 }
+
+async function analyzeImageBatch(images,startPage,endPage){
+ const response=await fetch('/api/analyze-report',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({images,startPage,endPage})
+ });
+ let payload=null;
+ try{payload=await response.json()}catch{}
+ if(!response.ok)throw new Error(payload?.error||`AI request failed (${response.status})`);
+ return payload;
+}
+
 function renderLabs(){
- const host=document.querySelector('#health .card:nth-of-type(5) .list');
- if(!data.labs?.length)return;
- // Find the latest check-up list by heading text.
  const cards=[...document.querySelectorAll('#health .card')];
  const card=cards.find(c=>c.innerText.includes('Latest Check-up'));
  if(!card)return;
  const list=card.querySelector('.list');
- list.innerHTML=data.labs.map(l=>`<div class="row"><span>🧪 ${esc(l.name)}</span><span><b>${l.value}</b> ${esc(l.unit)} <b class="status normal">Review</b></span></div>`).join('');
+ if(!data.labs?.length){
+   list.innerHTML='<div class="row"><span>🧪 No extracted lab values yet</span><span class="status">Upload a report</span></div>';
+   return;
+ }
+ list.innerHTML=data.labs.map(l=>{
+   const status=(l.status||'review').toLowerCase();
+   const cls=status==='low'?'low':status==='high'?'high':status==='normal'?'normal':'';
+   const range=l.reference_low!=null||l.reference_high!=null ? ` · ref ${l.reference_low??'—'}–${l.reference_high??'—'}` : '';
+   return `<div class="row"><span>🧪 ${esc(l.name)}${l.page?` <small>(p.${esc(l.page)})</small>`:''}</span><span><b>${esc(l.value)}</b> ${esc(l.unit||'')}${esc(range)} <b class="status ${cls}">${esc(status)}</b></span></div>`;
+ }).join('');
 }
 renderLabs();
 
